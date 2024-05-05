@@ -1,4 +1,5 @@
 const express = require('express');
+const path = ('path');
 const mongoose = require('mongoose');
 const userRoutes = require('./routes/userRoutes');
 const seedUsers = require('./models/userSeedData');
@@ -25,6 +26,7 @@ const app = express();
 
 // Middleware to parse JSON
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "uploads")));
 
 // Multer storage configuration
 const storage = multer.diskStorage({
@@ -57,71 +59,7 @@ app.post('/api/upload/', upload.any(), async function (req, res) {
 // Route to handle PDF deletion
 app.delete('/api/delete-pdf', async (req, res) => {
     try {
-        // Extract information from the request body
-        const { academicYearId, specializationName, semesterName, subjectName, sectionName, pdfId } = req.body;
 
-        // Find the academic year
-        const year = await academicYear.findById(academicYearId);
-
-        if (!year) {
-            return res.status(404).send('Academic year not found.');
-        }
-
-        // Find the specialization
-        const specialization = year.specializations.find(spec => spec.name === specializationName);
-
-        if (!specialization) {
-            return res.status(404).send('Specialization not found.');
-        }
-
-        // Find the semester
-        const semester = specialization.semesters.find(sem => sem.name === semesterName);
-
-        if (!semester) {
-            return res.status(404).send('Semester not found.');
-        }
-
-        // Find the subject
-        const subject = semester.subjects.find(sub => sub.name === subjectName);
-
-        if (!subject) {
-            return res.status(404).send('Subject not found.');
-        }
-
-        // Find the section
-        const section = subject.sections.find(sec => sec.name === sectionName);
-
-        if (!section) {
-            return res.status(404).send('Section not found.');
-        }
-
-        // Find the index of the PDF in the section
-        const pdfIndex = section.pdfs.findIndex(pdf => pdf._id.toString() === pdfId);
-
-        if (pdfIndex === -1) {
-            return res.status(404).send('PDF not found.');
-        }
-
-        // Get the PDF to be deleted
-        const pdfToDelete = section.pdfs[pdfIndex];
-
-        // Delete the PDF file from local storage
-        fs.unlink(pdfToDelete.path, (err) => {
-            if (err) {
-                console.error(`Failed to delete file: ${pdfToDelete.path}`);
-            } else {
-                console.log(`File deleted: ${pdfToDelete.path}`);
-            }
-        });
-
-        // Remove the PDF from the section array
-        section.pdfs.splice(pdfIndex, 1);
-
-        // Save the academic year document
-        await year.save();
-
-        // Respond with success
-        res.send('PDF deleted successfully.');
     } catch (error) {
         console.error(error);
         res.status(500).send('An error occurred while deleting the PDF.');
