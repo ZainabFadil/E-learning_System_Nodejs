@@ -31,6 +31,7 @@ const academicYearData = {
         }
 
     ]
+    
 }
 //Function to seed Data
 async function seedYear() {

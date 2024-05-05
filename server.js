@@ -5,7 +5,7 @@ const seedUsers = require('./models/userSeedData');
 const seedYear = require('./models/yearSeedData');
 const asyncHndler = require('express-async-handler');
 const multer = require('multer');
-
+const pdfs = require('./models/academicYear')
 //connecting with mongoose
 //mongoose.connect("mongodb://localhost:27017/project")
 mongoose.connect("mongodb://127.0.0.1:27017/Elearning-system")
@@ -13,7 +13,7 @@ mongoose.connect("mongodb://127.0.0.1:27017/Elearning-system")
         console.log('Connected to MongoDB');
 
         // Seed sample users into the database
-        seedUsers();
+        /*seedUsers(); */
         // seeding academic year data
         //seedYear();
     })
@@ -32,74 +32,22 @@ const storage = multer.diskStorage({
         cb(null, 'uploads/'); // Destination folder for uploads
     },
     filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname); // Unique file name
+        cb(null, Date.now() + '-' + file.originalname.replace(/\s/g, "")); // Unique file name
     }
 });
 
 const upload = multer({ storage: storage });
 
 // Route to handle file uploads
-app.post('/api/upload', upload.single('pdfFile'), async function (req, res) {
+app.post('/api/upload/', upload.any(), async function (req, res) {
     try {
-        // Get the file from the request
-        const file = req.file;
-
-        if (!file) {
-            return res.status(400).send('No file uploaded.');
+        if (req.files) {
+            req.body.path = "http://localhost:3000/uploads/" + req.files[0].filename;
         }
+        console.log(req.files[0]);
+        let pdf = await new pdfs(req.body).save();
+        res.status(200).send(pdf);
 
-        // Extract information from the request body
-        const { academicYearId, specializationName, semesterName, subjectName, sectionName } = req.body;
-
-        // Find the academic year
-        const year = await academicYear.findById(academicYearId);
-
-        if (!year) {
-            return res.status(404).send('Academic year not found.');
-        }
-
-        // Find the specialization
-        const specialization = year.specializations.find(spec => spec.name === specializationName);
-
-        if (!specialization) {
-            return res.status(404).send('Specialization not found.');
-        }
-
-        // Find the semester
-        const semester = specialization.semesters.find(sem => sem.name === semesterName);
-
-        if (!semester) {
-            return res.status(404).send('Semester not found.');
-        }
-
-        // Find the subject
-        const subject = semester.subjects.find(sub => sub.name === subjectName);
-
-        if (!subject) {
-            return res.status(404).send('Subject not found.');
-        }
-
-        // Find the section
-        const section = subject.sections.find(sec => sec.name === sectionName);
-
-        if (!section) {
-            return res.status(404).send('Section not found.');
-        }
-
-        // Create a new PDF document
-        const pdf = {
-            name: file.originalname,
-            path: file.path,
-        };
-
-        // Add the PDF document to the section
-        section.pdfs.push(pdf);
-
-        // Save the academic year document
-        await year.save();
-
-        // Respond with success
-        res.send('File uploaded and saved successfully.');
     } catch (error) {
         console.error(error);
         res.status(500).send('An error occurred while uploading and saving the file.');
@@ -183,47 +131,10 @@ app.delete('/api/delete-pdf', async (req, res) => {
 /*an API route in your Node.js back end that takes a request specifying the academic year
 , specialization, semester, subject, and section, and responds with the list of PDFs User routes
 */
-app.get('/api/get-pdfs', async (req, res) => {
+app.get('/api/get-pdfs/:subject', async (req, res) => {
     try {
-        const { academicYearId, specializationName, semesterName, subjectName, sectionName } = req.query;
-
-        // Find the academic year
-        const year = await academicYear.findById(academicYearId);
-
-        if (!year) {
-            return res.status(404).send('Academic year not found.');
-        }
-
-        // Find the specialization
-        const specialization = year.specializations.find(spec => spec.name === specializationName);
-
-        if (!specialization) {
-            return res.status(404).send('Specialization not found.');
-        }
-
-        // Find the semester
-        const semester = specialization.semesters.find(sem => sem.name === semesterName);
-
-        if (!semester) {
-            return res.status(404).send('Semester not found.');
-        }
-
-        // Find the subject
-        const subject = semester.subjects.find(sub => sub.name === subjectName);
-
-        if (!subject) {
-            return res.status(404).send('Subject not found.');
-        }
-
-        // Find the section
-        const section = subject.sections.find(sec => sec.name === sectionName);
-
-        if (!section) {
-            return res.status(404).send('Section not found.');
-        }
-
-        // Respond with the list of PDFs
-        res.json(section.pdfs);
+        const subject = req.params.subject
+        const pdfs = await PDF.find({ subjectname: subject });
     } catch (error) {
         console.error(error);
         res.status(500).send('An error occurred while fetching the PDFs.');
