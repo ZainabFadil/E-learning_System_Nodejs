@@ -8,6 +8,7 @@ const asyncHndler = require('express-async-handler');
 const multer = require('multer');
 const pdfs = require('./models/academicYear')
 const { v4: uuidv4 } = require('uuid');
+const apifeatures = require("./apiFeatures");
 
 //connecting with mongoose
 //mongoose.connect("mongodb://localhost:27017/project")
@@ -68,10 +69,13 @@ app.post('/api/upload/', upload.any(), async function (req, res) {
 });
 
 // Route to handle PDF deletion
-app.delete('/api/delete-pdf', async (req, res) => {
+app.delete('/api/delete-pdf/:id', async (req, res) => {
     try {
-
-    } catch (error) {
+            const { id } = req.params;
+            const document = await pdfs.findByIdAndDelete(id);
+              res.status(204).send();
+        }
+    catch (error) {
         console.error(error);
         res.status(500).send('An error occurred while deleting the PDF.');
     }
@@ -80,16 +84,29 @@ app.delete('/api/delete-pdf', async (req, res) => {
 /*an API route in your Node.js back end that takes a request specifying the academic year
 , specialization, semester, subject, and section, and responds with the list of PDFs User routes
 */
-app.get('/api/get-pdfs/:subject', async (req, res) => {
+app.get('/api/get-pdfs/', async (req, res) => {
     try {
-        const subject = req.params.subject
-        const pdfs = await PDF.find({ subjectname: subject });
+
+        //const pdfs = await pdfs.find();
+        const apiFeatures = new apifeatures(pdfs.find(), req.query) //build and easy chain these methods
+            //.paginate(documentsCounts)
+            .search("") //in product modelNname contains value
+            .limitfields()
+            .filter()
+            .sort();
+
+        const { mongooseQuery } = apiFeatures; // those in propery in class change at previous method(sort....)
+        const documents = await mongooseQuery;
+        res
+            .status(200)
+            .json({ results: documents.length, data: documents });
+
     } catch (error) {
         console.error(error);
         res.status(500).send('An error occurred while fetching the PDFs.');
     }
-});
 
+});
 app.use('/users', userRoutes);
 
 
