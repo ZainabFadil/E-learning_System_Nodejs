@@ -1,5 +1,5 @@
 const express = require('express');
-const path = ('path');
+const path = require("path");
 const mongoose = require('mongoose');
 const userRoutes = require('./routes/userRoutes');
 const seedUsers = require('./models/userSeedData');
@@ -7,6 +7,8 @@ const seedYear = require('./models/yearSeedData');
 const asyncHndler = require('express-async-handler');
 const multer = require('multer');
 const pdfs = require('./models/academicYear')
+const { v4: uuidv4 } = require('uuid');
+
 //connecting with mongoose
 //mongoose.connect("mongodb://localhost:27017/project")
 mongoose.connect("mongodb://127.0.0.1:27017/Elearning-system")
@@ -29,22 +31,31 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "uploads")));
 
 // Multer storage configuration
-const storage = multer.diskStorage({
+/*const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'uploads/'); // Destination folder for uploads
     },
     filename: function (req, file, cb) {
         cb(null, Date.now() + '-' + file.originalname.replace(/\s/g, "")); // Unique file name
     }
+});*/
+const multerStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/pdfs'); // Destination folder for uploads
+    },
+    filename: function (req, file, cb) {
+        const ext = file.mimetype.split('/')[1];
+        const filename = `category~${uuidv4()}~${Date.now()}.${ext}`;
+        cb(null, filename);
+    },
 });
-
-const upload = multer({ storage: storage });
+const upload = multer({ storage: multerStorage });
 
 // Route to handle file uploads
 app.post('/api/upload/', upload.any(), async function (req, res) {
     try {
         if (req.files) {
-            req.body.path = "http://localhost:3000/uploads/" + req.files[0].filename;
+            req.body.path = "http://localhost:3000/pdfs/" + req.files[0].filename;
         }
         console.log(req.files[0]);
         let pdf = await new pdfs(req.body).save();
