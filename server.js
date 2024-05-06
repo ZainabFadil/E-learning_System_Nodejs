@@ -17,7 +17,7 @@ mongoose.connect("mongodb://127.0.0.1:27017/Elearning-system")
         console.log('Connected to MongoDB');
 
         // Seed sample users into the database
-        /*seedUsers(); */
+        seedUsers();
         // seeding academic year data
         //seedYear();
     })
